@@ -53,7 +53,8 @@ Halls 7–9 and the palace's overall height.
 - **Every floor, as drawn.** Explode the model (button or slider) to pull apart the 13 levels, from
   −3 to the roof. Each floor shows its own walls, stairs and columns from the CAD plans. The
   facades move out with their floors.
-- **Halls on their real floors**, with nearly 7,000 seats placed individually:
+- **Halls on their real floors** (the Lumière cinema is left out: it is in a separate building
+  south-west of the palace), with 6,585 seats placed individually:
 
   | Hall | Where | Seats |
   | --- | --- | --- |
@@ -67,7 +68,6 @@ Halls 7–9 and the palace's overall height.
   | Hall 6 | level 0 | 200 |
   | Peroto | level 0 | 102 |
   | Hall 2 · Azaryan Theatre | level −2 | 403, around a round arena stage |
-  | Hall 11 · Lumière cinema | Small NDK building, south-west of the palace | 370, showing a looping homage to the Lumière train film |
 
 - **The sunken passage in front of the palace.**
   - An octagonal court, 31 × 32 m, opens in the square. The cascade pours into it, and at its
