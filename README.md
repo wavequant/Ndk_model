@@ -8,8 +8,8 @@ the 1978 groundbreaking to the grand opening on 31 March 1981.
 
 ## Open it
 
-Open `index.html` in a recent desktop or mobile browser (Chrome, Edge, Firefox or Safari). The
-page needs WebGL 2 and an internet connection: Three.js (r160) loads from `cdn.jsdelivr.net`, and
+Open `index.html` in a recent browser (Chrome, Edge, Firefox or Safari) on a desktop, tablet or
+phone. The page needs WebGL 2 and an internet connection: Three.js (r160) loads from `cdn.jsdelivr.net`, and
 fonts load from Google Fonts. There is no build step. Everything else, including geometry,
 textures, landscape and animation, is generated procedurally in the file.
 
@@ -54,8 +54,16 @@ textures, landscape and animation, is generated procedurally in the file.
 
 ## Controls
 
-Drag to orbit, right-drag to pan and scroll to zoom. Click a part, or pick it from the list, to
-isolate it.
+**Desktop.** Drag to orbit, right-drag to pan and scroll to zoom. Click a part, or pick it from the
+list, to isolate it.
+
+**Phones and tablets.** Drag with one finger to orbit, pinch to zoom and drag with two fingers to
+pan. Tap any part for its facts, or tap empty sky to clear the selection.
+- The **⚙** button opens the view controls and the **☰** button opens the list of parts.
+- They open as bottom sheets in portrait and side drawers in landscape.
+- The mode bar at the bottom switches between Explore, Explode and Build.
+- Phones get a lighter rendering profile automatically. Add `?hq` to the URL to force full
+  quality, or `?low` to force the light profile on a desktop.
 
 Keyboard shortcuts:
 
