@@ -52,15 +52,24 @@ Halls 7–9 and the palace's overall height.
   - A long single-storey south block, containing Hall 6.
 - **Every floor, as drawn.** Explode the model (button or slider) to pull apart the 13 levels, from
   −3 to the roof. Each floor shows its own walls, stairs and columns from the CAD plans. The
-  facades move out with their floors.
+  facades move out with their floors. The square over the basements opens onto the excavation, so
+  the underground levels show too.
+- **Stairs in 3D.** The stair lines of the plans are read flight by flight and built as solid
+  stairs:
+  - The four cores have imperial stairs: a wide flight up to a landing, then two narrow flights
+    back up on either side.
+  - The public stairs have red tile treads between solid dark-bronze parapets with stone caps,
+    and climb to where the next floor continues.
+  - In the atrium, flights that meet no floor get their own landings.
 - **Halls on their real floors** (the Lumière cinema is left out: it is in a separate building
-  south-west of the palace), with 6,585 seats placed individually:
+  south-west of the palace), with 6,585 seats placed individually. Every hall has a stage, and a
+  screen showing its name, on the wall its seats face:
 
   | Hall | Where | Seats |
   | --- | --- | --- |
   | Hall 1 | levels 2–7 | 3,380: a fan-shaped parterre of 2,100 and two balconies, as in NDK's seating plan; 800 m² stage with a revolving disc |
   | Hall 3 | level 7 | 1,200: a stepped octagon, not a rectangle, with side lodges and a wide stair up from level 6 |
-  | Halls 7, 8, 9 | level 5 | 260 each: triangular coffered ceilings with bulb chandeliers; a mural in Hall 8; Hall 9 has a balcony on level 6 |
+  | Halls 7, 8, 9 | level 5 | 260 each, facing a stage on the outer wall: triangular coffered ceilings with bulb chandeliers; Hall 8 faces its mural; Hall 9 has a balcony on level 6 |
   | Hall 10 | level 8 | 200 |
   | Halls 3.1, 3.2 | level 8 | 100 each |
   | Hall 3.4 | level 8 | meeting room |
@@ -89,8 +98,8 @@ Halls 7–9 and the palace's overall height.
   - A section cut.
   - Time of day from dawn to night, with lit windows, coloured fountains and stars.
   - A cinematic tour and camera presets.
-  - Click any part for its facts. Selecting an underground part clears the building and the ground
-    away so you can see it.
+  - Click any part for its facts. Selecting an underground part (level −1 to −3, Hall 2, the
+    underpass or the metro) clears the building, the ground and the park away so you can see it.
 
 ## Controls
 
@@ -124,4 +133,7 @@ Keyboard shortcuts:
   counts, the building's footprint and orientation, and the layout of the surroundings.
 - **Reconstructed:** the heights between floors, the roofs, the finishes and the interiors of the
   halls. These follow photographs and are not measured drawings.
+- **Inferred:** which way each stair climbs, and its landings. The plans show where the flights and
+  treads are but not their direction, so each flight climbs towards the side where the floor above
+  (or its own floor, for flights in an opening) continues.
 - **Level −3 is not published.** It is shown as a plant level on a structural grid.
