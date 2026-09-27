@@ -3397,6 +3397,7 @@ async function init() {
     frames: () => FRAMES,
     snap: () => { state.explode = state.explodeTarget; applyExplode(state.explode); clayU.value = state.style === 'clay' ? 1 : 0; if (camTween) { camera.position.copy(camTween.p1); controls.target.copy(camTween.t1); camTween = null; } if (state.timeAnim) { setTimeOfDay(state.timeAnim.to); state.timeAnim = null; applyTimeUI(); } },
     setCam: (p, t) => { camTween = null; camera.position.set(...p); controls.target.set(...t); },
+    pickAt: (x, y) => { mouse.set(x / innerWidth * 2 - 1, -(y / innerHeight) * 2 + 1); const p = pickAt(); if (!p) return null; ray.setFromCamera(mouse, camera); const h = ray.intersectObjects(pickables, false).find(h => h.object.userData.part === p); return [p.id, h && h.point.toArray().map(v => +v.toFixed(1))]; },
     state, setMode, selectKey, setStyle, setCut, setTimeOfDay, cam, celebrate, applyBuild, parts, renderer, animateTime, toggle, CAMS, camera, controls, flyTo };
 }
 addEventListener('error', e => { if (!$('#loader').classList.contains('done')) fail('Something went wrong while building the model: ' + (e.message || e.error)); });
