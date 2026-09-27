@@ -1233,9 +1233,12 @@ function buildLandscape() {
   // the paved city floor, cut open where the sunken court and the stairs of the underpass are
   M.urban = mat({ map: texVariant(TX.paving, 10, 10), color: 0xc9c3b8, roughness: .85 }, { clip: false, clay: '#efebe4' });
   const holes = [WELL, ...STAIRWELLS.map(W => rectPts(W.x0, W.z0, W.x1, W.z1))];
-  addMesh(p, st, flatGeo(rectPts(-SITE_R, -SITE_R, SITE_R, SITE_R + 150), holes, 0), M.urban, { cast: false });
-  // Bulgaria Square in front of the palace: lighter granite
-  addMesh(p, st, flatGeo([[-98, -52], [120, -52], [140, -128], [-110, -136]], holes, .015), M.paving, { cast: false });
+  addMesh(p, st, flatGeo(rectPts(-SITE_R, -SITE_R, SITE_R, SITE_R + 150), [rectPts(PIT.x0, PIT.z0, PIT.x1, PIT.z1)], 0), M.urban, { cast: false });
+  // Bulgaria Square over the excavation: lighter granite, paved last
+  const lid = Part({ id: 'lid', name: 'Bulgaria Square', cat: 'landscape', pick: false, scenery: true });
+  M.lidPaving = cloneMat(M.paving); M.lidPaving.clippingPlanes = null;
+  addMesh(lid, stage(lid, '1980-10-10', '1980-12-20', 'pour', { center: [0, -90] }), flatGeo(rectPts(PIT.x0, PIT.z0, PIT.x1, PIT.z1), holes, .01), M.lidPaving, { cast: false });
+  groundMats.push(M.lidPaving);
   const g = polysGeo(SITE.green, .03); if (g) addMesh(p, st, g, M.grass, { cast: false });
   const w = polysGeo(SITE.wood, .025); if (w) addMesh(p, st, w, M.grass, { cast: false });
   M.pitch = M.pitch || mat({ color: 0x4f7a4a, roughness: .9 }, { clip: false, clay: '#e9e6df' });
@@ -1413,7 +1416,7 @@ function buildCity() {
     }
   });
   const polys = unpackLines(NDK_SITE.bld), H = b64bytes(NDK_SITE.bldH), names = NDK_SITE.bldNames;
-  const skip = new Set(Object.entries(names).filter(([, n]) => n === 'Малко НДК' || n === 'Административна сграда на НДК').map(([i]) => +i));
+  const skip = new Set();
   const pal = ['#e6dcc6', '#d2d0c8', '#d9bb8e', '#d9b4a2', '#bdbab2', '#efeee8', '#c7917a', '#a9b3b8', '#e0cfa8'];
   const P = [], N = [], Cc = [], col = new THREE.Color(), roofC = new THREE.Color();
   const push = (a, n, c) => { P.push(a.x, a.y, a.z); N.push(n.x, n.y, n.z); Cc.push(c.r, c.g, c.b); };
@@ -1895,6 +1898,22 @@ function buildFlyTower() {
   const gr = new GB(); for (let x = -13; x <= 13; x += 1.3) gr.box(x - .08, 33.4, 31.4, x + .08, 33.6, 47.6);
   addMesh(p, st, gr.geo(), M.darkMetal);
 }
+/* long-span steel trusses over Hall 3 (lifted in one by one during construction) */
+function buildTrusses() {
+  const p = Part({ id: 'trusses', name: 'Steel roof trusses', cat: 'structure', color: '#b8c4d0', list: true, xray: true,
+    explodeVec: V3(0, LV.RF.k * GAP + 4, 0), delay: levelDelay(8.5),
+    info: { cat: 'Structure', sub: 'Over Hall 3 · under the copper pyramid', stats: [['~10,000 t', 'metal structures in NDK'], ['44 m', 'clear span over Hall 3'], ['1980', 'erected']], desc: 'Around 10,000 tonnes of metal went into the palace — often compared with the Eiffel Tower. Long-span trusses carry the roof over the column-free Hall 3 and the pyramid above it.' } });
+  const gb = new GB(), y0 = 40.8, y1 = 43.2, xs = 21.6;
+  const zs = []; for (let z = -14; z <= 29.5; z += 3.6) zs.push(z);
+  for (const z of zs) {
+    gb.beam(V3(-xs, y1, z), V3(xs, y1, z), .4, .45); gb.beam(V3(-xs, y0, z), V3(xs, y0, z), .4, .45);
+    for (let i = 0; i <= 12; i++) { const x = -xs + i * xs / 6; gb.beam(V3(x, y0, z), V3(x, y1, z), .2, .2); if (i < 12) gb.beam(V3(x + (i % 2 ? xs / 6 : 0), y0, z), V3(x + (i % 2 ? 0 : xs / 6), y1, z), .16, .16); }
+  }
+  for (let x = -20; x <= 20; x += 8) gb.beam(V3(x, y1 + .1, zs[0]), V3(x, y1 + .1, zs[zs.length - 1]), .28, .28);
+  const st = stage(p, '1980-02-10', '1980-05-25', 'none');
+  const mesh = addMesh(p, st, gb.geo(), M.steel);
+  st.onBuild = kk => { mesh.position.y = (1 - easeOut(clamp(kk * 1.15))) * 30; mesh.scale.set(1, 1, Math.max(.001, clamp(kk * 1.3))); mesh.position.z = -14 * (1 - mesh.scale.z); };
+}
 /* seat: coloured cushion + back, contrasting shell & arms (two material groups) */
 const SEAT_GEO = (() => {
   const a = new GB(), b = new GB();
@@ -2291,7 +2310,7 @@ function buildLevel0Halls() {
   const defs = [
     { id: 'hall4', n: 'Hall 4', P: C([[44, -24], [54.5, -24], [54.5, -50], [49, -55], [44, -50]]), face: [0, -1], seats: 120, top: 4, c: '#35d0c0', m: 'seatTeal', hue: 175, sub: 'Level 0 · east side', stats: [['120', 'seats'], ['380 m²', 'floor'], ['6', 'interpretation languages']], desc: 'A 380 m² hall on the ground floor for plenary sessions and meetings, with simultaneous interpretation into six languages.' },
     { id: 'hall6', n: 'Hall 6', P: C([[-13.9, -70.3], [14.3, -70.3], [14.3, -87.8], [-13.9, -87.8]]), face: [0, -1], seats: 200, top: 7.4, c: '#8ad06a', m: 'seatGreen', hue: 110, sub: 'Level 0 · south end, own entrance', stats: [['200+', 'seats'], ['480 m²', 'main space'], ['3', 'independent entrances']], desc: 'Hall 6 closes the south end of the ground floor, with its own entrances from levels 0 and −1, its own car park, daylight, movable walls and an open terrace — used for large receptions, conferences and classical concerts.' },
-    { id: 'peroto', n: 'Peroto', P: C([[45.5, 11], [57, 11], [57, -6.5], [45.5, -6.5]]), face: [1, 0], seats: 102, top: 4, c: '#e6a86b', m: 'seatBlack', hue: 30, sub: 'Level 0 · literary club, own entrance', stats: [['102', 'seats (theatre)'], ['120', 'people max'], ['Bar', 'and park terrace']], desc: 'The literary club ‘Peroto’: a small stage, a working bar and a terrace towards the park, with its own entrance from Fridtjof Nansen Boulevard. Readings, lectures, concerts and presentations.' },
+    { id: 'peroto', n: 'Peroto', P: C([[45.5, 11], [57, 11], [57, -6.5], [45.5, -6.5]]), face: [1, 0], seats: 102, top: 4, c: '#e6a86b', m: 'seatRed', hue: 30, sub: 'Level 0 · literary club, own entrance', stats: [['102', 'seats (theatre)'], ['120', 'people max'], ['Bar', 'and park terrace']], desc: 'The literary club ‘Peroto’: a small stage, a working bar and a terrace towards the park, with its own entrance from Fridtjof Nansen Boulevard. Readings, lectures, concerts and presentations.' },
   ];
   for (const d of defs) {
     const p = hallPart({ id: d.id, name: d.n, color: d.c, explodeVec: V3(0, 0, 0), delay: levelDelay(0), label: { t: d.n, s: `${d.seats} seats · level 0` },
@@ -2331,35 +2350,6 @@ function buildHall2() {
   addMesh(p, stI, b, M.beam, { cast: false, pick: false, hideGhost: true });
   M.seatGrey = M.seatGrey || mat({ color: 0x55585e, roughness: .7 }, { clay: '#d8d6d2' });
   const im = seatMesh(A.seats, M.seatGrey); seatStage(p, im, A.seats.length, '1980-10-15', '1981-02-01');
-}
-
-/* ---------- Small NDK: Hall 11 (Lumière cinema) and the administrative tower ---------- */
-function buildSmallNDK() {
-  const names = NDK_SITE.bldNames, polys = unpackLines(NDK_SITE.bld), H = [...b64bytes(NDK_SITE.bldH)];
-  const find = nm => { for (const [i, n] of Object.entries(names)) if (n === nm) return { P: polys[+i], h: H[+i] / 2 }; return null; };
-  const small = find('Малко НДК'), adm = find('Административна сграда на НДК');
-  const p = hallPart({ id: 'hall11', name: 'Hall 11 · Lumière cinema', color: '#ffd166', explodeVec: V3(0, 0, 0), delay: 0, label: { t: 'Hall 11 · Lumière', s: '370 seats · Small NDK' },
-    info: { cat: 'Hall', sub: 'In the ‘Small NDK’ building, south-west of the palace', stats: [['370', 'seats'], ['Europa', 'Cinemas network'], ['Small NDK', 'building']], desc: 'Kino Lumière is not in the palace itself but in the ‘Small NDK’, the low building south-west of it beside NDK’s administrative tower. A favourite of Sofia’s film lovers and festival audiences; on its screen here, a looping homage to the Lumière brothers’ 1896 train.' } });
-  const st = stage(p, '1979-06-01', '1980-02-01', 'rise', { baseY: -BLD_Y }), stI = stage(p, '1980-07-01', '1980-12-01', 'rise', { baseY: -BLD_Y });
-  const y0 = -BLD_Y;
-  if (small) { const g = new GB(); polyPrism(g, small.P, y0, y0 + small.h); polyCap(g, small.P, y0 + small.h); addMesh(p, st, g.geo(), M.stone, { shell: true }); }
-  if (adm) {
-    const g = new GB(), gl = new GB(); polyPrism(g, adm.P, y0, y0 + adm.h); polyCap(g, adm.P, y0 + adm.h);
-    polyPrism(gl, offsetPoly(adm.P, -.08), y0 + 4, y0 + adm.h - 2);
-    addMesh(p, st, g.geo(), M.stone, { shell: true }); addMesh(p, st, gl.geo(), M.glassA, { cast: false, shell: true });
-  }
-  // the cinema inside the Small NDK: a raked hall facing the screen
-  const [cx, cz] = small ? centroid(small.P) : [-185, 212], ry = faceRy(0, 1), seats = [], fl = new GB();
-  for (let r = 0; r < 14; r++) {
-    const z = cz - 6 + r * 1.0, yy = y0 + .3 + r * .38;
-    fl.box(cx - 11.5, y0, z - .5, cx + 11.5, yy, z + .5);
-    for (const [ox, n] of [[-7.2, 9], [0, 12], [7.2, 9]]) for (let i = 0; i < n; i++) if (seats.length < 370) seats.push({ x: cx + ox + (i - (n - 1) / 2) * .58, y: yy, z: z + .1, ry: faceRy(0, -1) });
-  }
-  HALL_SEATS.hall11 = seats.length;
-  addMesh(p, stI, fl.geo(), M.carpetRed);
-  const sc = new GB(); screenQuad(sc, cx, cz - 8.6, 0, 1, 14, y0 + 1.6, y0 + 7.4); addMesh(p, stI, sc.geo(), M.screenFilm, { cast: false });
-  const im = seatMesh(seats, M.seatBlue); seatStage(p, im, seats.length, '1980-10-15', '1981-02-01');
-  void ry;
 }
 
 /* ---------- art: the bronze sun, ‘Revival’, the grand foyer ---------- */
@@ -2900,7 +2890,7 @@ const MILESTONES = [
   ['1980-02-10', '10,000 tonnes of steel', 'Long-span trusses are lifted over the column-free halls — a tonnage often compared with the Eiffel Tower.'],
   ['1980-03-25', 'Last column', 'The frame is complete on 25 March 1980, just eight months after the first column.'],
   ['1980-05-01', 'Marble & bronze glass', 'White marble fins and bronze-tinted glass close the stepped fronts, floor by floor.'],
-  ['1980-09-15', 'Interiors, art & seats', 'Some 335,000 m³ of concrete are in. Murals, mosaics, the gilded ‘Revival’ and nearly 7,000 seats are installed.'],
+  ['1980-09-15', 'Interiors, art & seats', 'Some 335,000 m³ of concrete are in. Murals, mosaics, the gilded ‘Revival’ and some 6,600 seats are installed.'],
   ['1980-12-01', 'Plaza, park & fountains', 'The excavation is closed over, the plaza paved, the park planted and the fountains tested.'],
   ['1981-03-31', 'Grand opening', 'The National Palace of Culture opens on 31 March 1981 — built in less than three years.'],
 ].map(([d, t, s]) => ({ T: D(d), d, t, s }));
@@ -3090,17 +3080,17 @@ function updateLabels() {
 /* ---------- parts list ---------- */
 function buildList() {
   const groups = [
-    ['Halls', ['hall1', 'hall3', 'hall2', 'hall7', 'hall8', 'hall9', 'hall10', 'hall31', 'hall32', 'hall34', 'hall4', 'hall6', 'peroto', 'hall11'], k => HALL_SEATS[k] ? `${fmt(HALL_SEATS[k])} seats` : 'meetings'],
+    ['Halls', ['hall1', 'hall3', 'hall2', 'hall7', 'hall8', 'hall9', 'hall10', 'hall31', 'hall32', 'hall34', 'hall4', 'hall6', 'peroto'], k => HALL_SEATS[k] ? `${fmt(HALL_SEATS[k])} seats` : 'meetings'],
     ['Exterior & art', ['fronts', 'towers', 'crown', 'terraces', 'podium', 'sun', 'revival'], k => ({ fronts: 'from the plans', towers: '4 cores', terraces: 'level 8', crown: '~51 m', podium: '+2.5 m', sun: 'bronze', revival: 'gilded' })[k]],
     ['Under the square', ['underpass', 'metro'], k => ({ underpass: 'Cosmos fountain', metro: 'M2 · 2012' })[k]],
     ['Floors (from the CAD plans)', ['RF', 'L8', 'L7', 'L6', 'L5', 'L4', 'L3', 'L2', 'L1', 'L0', 'B1', 'B2', 'B3'], k => `${LV[k].y >= 0 ? '+' : '−'}${Math.abs(LV[k].y)} m`],
-    ['Structure', ['flytower'], k => 'stage house'],
+    ['Structure', ['flytower', 'trusses'], k => ({ flytower: 'stage house', trusses: '~10,000 t' })[k]],
     ['Surroundings', ['park', 'vitosha'], k => ({ park: 'OpenStreetMap', vitosha: '2,290 m' })[k]],
   ];
   const host = $('#list');
   host.innerHTML = groups.map(([h, keys, meta]) => `<div class="grp"><h4>${h}</h4>${keys.map(k => {
     const inf = infoOf(k); return `<button class="item" data-key="${k}"><span class="d" style="background:${inf.color}"></span><span class="n">${inf.name}</span><span class="m">${meta(k) || ''}</span></button>`;
-  }).join('')}</div>`).join('') + `<p style="color:var(--dim);font-size:10.5px;line-height:1.5;margin:14px 6px 4px">Floor plates, walls, stairs and columns come 1:1 from NDK’s published CAD plans; hall capacities from ndk.bg; the surroundings from OpenStreetMap. Heights between floors and finishes are reconstructed from photographs. Every one of the ${fmt(Object.values(HALL_SEATS).reduce((a, b) => a + b, 0))} seats is placed individually.</p>`;
+  }).join('')}</div>`).join('') + `<p style="color:var(--dim);font-size:10.5px;line-height:1.5;margin:14px 6px 4px">Floor plates, walls, stairs and columns come 1:1 from NDK’s published CAD plans; hall capacities from ndk.bg; the surroundings from OpenStreetMap (© OpenStreetMap contributors, ODbL). Heights between floors and finishes are reconstructed from photographs. Every one of the ${fmt(Object.values(HALL_SEATS).reduce((a, b) => a + b, 0))} seats is placed individually.</p>`;
   host.querySelectorAll('.item').forEach(el => {
     el.addEventListener('click', () => { if (state.selKey === el.dataset.key) focusOn(el.dataset.key); else selectKey(el.dataset.key); });
     el.addEventListener('mouseenter', () => { const ps = partsOf(el.dataset.key); if (ps.length && !ps[0].scenery) { state.hover = ps; updateOutline(); } });
@@ -3380,8 +3370,8 @@ async function init() {
     ['Raising Vitosha…', buildVitosha],
     ['Growing Sofia…', buildCity],
     ['Pouring floors from the CAD plans…', buildLevels],
-    ['Cladding in marble & bronze…', () => { buildExterior(); buildSun(); buildSculpture(); }],
-    ['Seating nearly 7,000 guests…', () => { buildHall1(); buildHall3(); buildHalls789(); buildLevel8Halls(); buildLevel0Halls(); buildHall2(); buildSmallNDK(); buildMetro(); }],
+    ['Cladding in marble & bronze…', () => { buildExterior(); buildTrusses(); buildSun(); buildSculpture(); }],
+    ['Seating 6,585 guests…', () => { buildHall1(); buildHall3(); buildHalls789(); buildLevel8Halls(); buildLevel0Halls(); buildHall2(); buildMetro(); }],
     ['Calling in the cranes…', () => { buildConstruction(); buildPeople(); buildTraffic(); }],
     ['Lighting the stage…', () => {
       SEAT_IMS = parts.filter(p => p.cat === 'hall').flatMap(p => p.meshes).filter(m => m.isInstancedMesh && m.geometry === SEAT_GEO && (Array.isArray(m.userData.orig) ? m.userData.orig[0] : m.userData.orig) !== M.seatBlack);
