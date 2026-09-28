@@ -19,8 +19,11 @@ data is embedded in the file.
 - **Floors 0–8.** Floor plates, walls, glazed partitions, stairs, escalators and columns are
   converted 1:1 from `NDK_Expo_Levels.dwg`, which NDK publishes on
   [ndk.bg › Планове на зали](https://www.ndk.bg/bg/planove-na-zali). The drawing is in centimetres;
-  a 1 m exhibition grid confirms the scale. The ten level sheets were aligned to each other by
-  cross-correlating the walls of the four lift cores, to within about 10 cm.
+  a 1 m exhibition grid confirms the scale. The ten level sheets are registered to each other by
+  the structural columns that run through every floor, to within about 5 cm, and centred on the
+  building's axis. Level 1's front mezzanine, drawn about 2.6 m out of place on its sheet, is moved
+  onto the columns below and above it. Where a sheet leaves out a lift core (all four on level 1,
+  one on level 6), the core walls are taken from the next floor, so the shafts run unbroken.
 - **Levels −1 and −2.** The Azaryan Theatre and its entrance come from the `NDK Level −1/−2 Azaryan`
   PDFs on the same page.
 - **Halls.** Positions, shapes and capacities follow the hall plans and pages on
@@ -37,18 +40,24 @@ data is embedded in the file.
     OSM footprint, which also fixes where the palace sits on the map.
   - The underpass, the Cosmos fountain court and the metro are placed from the OSM layers −1 to −3.
 
-The facades are generated from each floor's outline in the plans. The saw-tooth steps of the
-diagonal fronts become the white marble fins in front of bronze glass. The heights between floors
-are not in the published plans; they are reconstructed from photographs, the 7.15 m ceilings of
-Halls 7–9 and the palace's overall height.
+The facades follow one mirror-symmetric line taken from the upper floors' outlines. The fins of
+the diagonal fronts are read from the plans: each is a Y in plan, two 2 m arms opening outwards in
+a V and a short stem inwards, repeating every 4 m along the diagonal with narrow glass between the
+tips. The fins run unbroken from their foot to the cornice. On the outer wings the plans add a fin
+or two per floor, so there the feet of the fins climb away from the towers. The heights between
+floors are not in the published plans; they are reconstructed from photographs, the 7.15 m
+ceilings of Halls 7–9 and the palace's overall height.
 
 ## What's inside
 
 - **The real plan.**
-  - A body about 116 m wide, with four white stair cores on the diagonals.
-  - The stepped, finned diagonal fronts and the bronze-glass bay on the park side, carrying Georgi
-    Chapkanov's sun.
-  - A ring of panoramic terraces on level 8, and a copper pyramid over Hall 3.
+  - A body about 116 m wide, with four white stair towers midway along the diagonal fronts. Each has
+    a tall dark glazed slot and a copper roof that slants up into the crown.
+  - The finned diagonal fronts, and the bronze-glass bay on the park side carrying Georgi
+    Chapkanov's sun on a square white panel. The back has its own tall glass bay.
+  - Roofs in three tiers, each set further in: the cornice of the level 7 terraces; level 8 under a
+    deep eave and a copper mansard; and the crown over Hall 3, with a copper mansard and a low
+    pyramid folded along an X and a + of ridges.
   - A long single-storey south block, containing Hall 6.
 - **Every floor, as drawn.** Explode the model (button or slider) to pull apart the 13 levels, from
   −3 to the roof. Each floor shows its own walls, stairs and columns from the CAD plans. The
@@ -85,8 +94,8 @@ Halls 7–9 and the palace's overall height.
   - The underpass runs east–west under the square. It has shops, stairs up at both sides and a
     passage north to the M2 station ‘NDK’.
   - On the south side, doors lead to the Azaryan Theatre foyer.
-- **Grand foyer.** The gilded ‘Revival’ stands before a golden relief wall, under cascading bulb
-  chandeliers in the three-storey atrium.
+- **Grand foyer.** The gilded ‘Revival’ stands before a golden relief wall. Bronze-clad columns rise
+  unbroken through the three-storey atrium, and cascading bulb chandeliers hang from its ceiling.
 - **Build 1978 → 81.** A day-by-day animation:
   - The pit is excavated, tower cranes and trucks work the site, and floors are poured level by
     level.
@@ -132,7 +141,8 @@ Keyboard shortcuts:
 - **1:1 from the sources:** the plan geometry of levels −2 to 8, hall positions and outlines, seat
   counts, the building's footprint and orientation, and the layout of the surroundings.
 - **Reconstructed:** the heights between floors, the roofs, the finishes and the interiors of the
-  halls. These follow photographs and are not measured drawings.
+  halls. These follow photographs and are not measured drawings. So do the fins on the south
+  fronts, which the published plans do not draw, and the extent of the crown.
 - **Inferred:** which way each stair climbs, and its landings. The plans show where the flights and
   treads are but not their direction, so each flight climbs towards the side where the floor above
   (or its own floor, for flights in an opening) continues.
