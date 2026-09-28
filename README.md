@@ -22,8 +22,10 @@ data is embedded in the file.
   a 1 m exhibition grid confirms the scale. The ten level sheets are registered to each other by
   the structural columns that run through every floor, to within about 5 cm, and centred on the
   building's axis. Level 1's front mezzanine, drawn about 2.6 m out of place on its sheet, is moved
-  onto the columns below and above it. Where a sheet leaves out a lift core (all four on level 1,
-  one on level 6), the core walls are taken from the next floor, so the shafts run unbroken.
+  onto the columns below and above it. The four lift and stair cores are drawn a little differently
+  from sheet to sheet, and level 1 leaves them out. So all four are built from one drawing, the
+  north-east core of level 5, reflected into the other three corners and repeated on every floor
+  from level 0 to 8. The shafts run unbroken and are identical.
 - **Levels −1 and −2.** The Azaryan Theatre and its entrance come from the `NDK Level −1/−2 Azaryan`
   PDFs on the same page.
 - **Halls.** Positions, shapes and capacities follow the hall plans and pages on
@@ -65,8 +67,9 @@ ceilings of Halls 7–9 and the palace's overall height.
   the underground levels show too.
 - **Stairs in 3D.** The stair lines of the plans are read flight by flight and built as solid
   stairs:
-  - The four cores have imperial stairs: a wide flight up to a landing, then two narrow flights
-    back up on either side.
+  - The four cores share one imperial stair: a wide flight up to a landing, then two narrow flights
+    back up on either side. It is the same on every floor, from level 0 to 8; only the risers
+    change with the storey height.
   - The public stairs have red tile treads between solid dark-bronze parapets with stone caps,
     and climb to where the next floor continues.
   - In the atrium, flights that meet no floor get their own landings.
@@ -95,7 +98,9 @@ ceilings of Halls 7–9 and the palace's overall height.
     passage north to the M2 station ‘NDK’.
   - On the south side, doors lead to the Azaryan Theatre foyer.
 - **Grand foyer.** The gilded ‘Revival’ stands before a golden relief wall. Bronze-clad columns rise
-  unbroken through the three-storey atrium, and cascading bulb chandeliers hang from its ceiling.
+  unbroken through the three-storey atrium. Three cascading bulb chandeliers hang in a row across
+  the middle of the foyer. The two side ones hang from the ceiling of level 2; the large one in the
+  centre hangs through the atrium's upper opening.
 - **Build 1978 → 81.** A day-by-day animation:
   - The pit is excavated, tower cranes and trucks work the site, and floors are poured level by
     level.
@@ -141,8 +146,10 @@ Keyboard shortcuts:
 - **1:1 from the sources:** the plan geometry of levels −2 to 8, hall positions and outlines, seat
   counts, the building's footprint and orientation, and the layout of the surroundings.
 - **Reconstructed:** the heights between floors, the roofs, the finishes and the interiors of the
-  halls. These follow photographs and are not measured drawings. So do the fins on the south
-  fronts, which the published plans do not draw, and the extent of the crown.
+  halls. These follow photographs and are not measured drawings. The south half of the upper body
+  is the north half mirrored, so from above it is a square with cut corners, as in aerial photos.
+  The plans draw a recessed south front, which the model fills out to that line. The fins on the
+  south fronts, which the plans do not draw, and the extent of the crown are reconstructed too.
 - **Inferred:** which way each stair climbs, and its landings. The plans show where the flights and
   treads are but not their direction, so each flight climbs towards the side where the floor above
   (or its own floor, for flights in an opening) continues.

@@ -1042,7 +1042,8 @@ const GROUPS = {};
 function cloneMat(m, planes) {
   const c = m.clone(); const o = CLAY_OPTS.get(m) || {};
   clayify(c, o); CLAY_OPTS.set(c, o);
-  if (planes) { c.clippingPlanes = planes; c.clipShadows = true; }
+  // Material.clone() copies the section plane by value, which would freeze the cut: share the live planes instead
+  if (planes) { c.clippingPlanes = planes; c.clipShadows = true; } else if (m.clippingPlanes) c.clippingPlanes = m.clippingPlanes;
   return c;
 }
 const BLD = new THREE.Group(); BLD.position.y = BLD_Y; scene.add(BLD);
@@ -1679,25 +1680,39 @@ const COL_STACKS = (() => {
   for (const id of ABOVE) { const L = LV[id]; for (const c of out[id]) c.h = c.s.lv.includes(c.k + 1) ? L.h : L.h - .7; }
   return out;
 })();
-/* the shafts of the four lift & stair cores: a sheet that leaves a core out (level 1 has none, level 6 lacks the
-   south-west one) takes it from the nearest floor that has it, so every core runs unbroken from level 0 to 8 */
-const CORE_KEYS = Object.keys(NDK_PLAN.cores);
-const _coreSegs = {};
-function coreSegsOf(id) {
-  if (_coreSegs[id]) return _coreSegs[id];
-  const out = {}; for (const k of CORE_KEYS) out[k] = [];
-  for (const s of unpackSegs(PL[id].walls)) { const mx = (s[0] + s[2]) / 2, mz = (s[1] + s[3]) / 2; const k = CORE_KEYS.find(k => inPoly(NDK_PLAN.cores[k], mx, mz, .6)); if (k) out[k].push(s); }
-  return (_coreSegs[id] = out);
-}
+/* the four lift & stair cores are one design: the north-east core of level 5 in the plans (the cleanest drawing),
+   reflected into the other three (east–west about the axis, north–south about the middle of the side fronts) and
+   repeated on every floor from level 0 to 8, so every shaft runs unbroken with the same walls and the same stair */
+const CORE_T = { NE: [1, false], NW: [-1, false], SE: [1, true], SW: [-1, true] };
+const coreXf = (k, x, z) => { const [sx, mz] = CORE_T[k]; return [sx * x, mz ? MIRROR_Z - z : z]; };
+const CORE_POLYS = () => Object.keys(CORE_T).map(k => NDK_PLAN.cores.NE.map(([x, z]) => coreXf(k, x, z)));
+let _coreSegs = null;
 function coreWalls(id) {
   if (!ABOVE.includes(id)) return [];
-  const i = ABOVE.indexOf(id), res = [];
-  for (const k of CORE_KEYS) {
-    let segs = coreSegsOf(id)[k];
-    for (let d = 1; segs.length < 6 && d < ABOVE.length; d++) for (const j of [i + d, i - d]) if (segs.length < 6 && ABOVE[j] && coreSegsOf(ABOVE[j])[k].length >= 6) segs = coreSegsOf(ABOVE[j])[k];
-    res.push(...segs);
+  if (!_coreSegs) {
+    const src = unpackSegs(PL.L5.walls).filter(s => inPoly(NDK_PLAN.cores.NE, (s[0] + s[2]) / 2, (s[1] + s[3]) / 2, .6));
+    _coreSegs = [];
+    for (const k of Object.keys(CORE_T)) for (const s of src) _coreSegs.push([...coreXf(k, s[0], s[1]), ...coreXf(k, s[2], s[3])]);
   }
-  return res;
+  return _coreSegs;
+}
+/* the core stair (level 5, north-east core): a wide flight up to a landing against the outer wall, then two narrow
+   flights back up on either side of it; the same plan on every floor, only the risers change with the storey height */
+function coreStairs(L) {
+  const r2 = Math.SQRT1_2, P = (a, s) => [r2 * (a + s), r2 * (s - a)];         // (a, s): along the flights, across them
+  const a0 = 43.13, a1 = 47.3, a2 = 49.5, sc = 3.39, sOff = 2.77, runM = a1 - a0, runS = 3.85, h = L.h;
+  const N = Math.max(16, Math.round(h / .18)), nM = Math.ceil(N / 2), nS = N - nM, r = h / N, yl = nM * r;
+  const groups = [];
+  for (const k of Object.keys(CORE_T)) {
+    const [sx, mz] = CORE_T[k], X = p => coreXf(k, p[0], p[1]), D = (dx, dz) => [sx * dx, mz ? -dz : dz];
+    const fl = (a, s, dir, w, n, g, y) => { const [x, z] = X(P(a, s)), [dx, dz] = D(r2 * dir, -r2 * dir); return { x, z, dx, dz, w, n, g, y, r }; };
+    const items = [fl(a0, sc, 1, 3.1, nM, runM / (nM - 1), 0)];
+    for (const o of [-sOff, sOff]) items.push(fl(a1, sc + o, -1, 1.9, nS, runS / (nS - 1), yl));
+    const land = [P(a1, sc - 3.72), P(a1, sc + 3.72), P(a2, sc + 3.72), P(a2, sc - 3.72)].map(X);
+    items.push({ land, y: yl, rails: [[...land[1], ...land[2]], [...land[2], ...land[3]], [...land[3], ...land[0]]] });
+    groups.push({ core: true, items });
+  }
+  return groups;
 }
 function buildLevels() {
   M.deck = M.deck || mat({ map: texVariant(TX.paving, 6, 6), color: 0xefe7d8, roughness: .8 });
@@ -1719,6 +1734,9 @@ function buildLevels() {
       area += polyArea(outer) - holes.reduce((s, h) => s + polyArea(h), 0);
       if (L.y > 0) addMesh(p, stSlab, flipDown(flatGeo(outer, holes, L.y - T - .02)), L.y < 21 ? M.coffer : M.plaster, { cast: false });
     }
+    // the squared-off south front: the floors run on out to its glass, kept behind the fins' V's (just under the plans'
+    // slab where they overlap)
+    if (L.y >= 12 && L.y < 40) addMesh(p, stSlab, slabGeo(clipHalf(clipHalf(SOUTH_FILL, -1, -1, -73.3), 1, -1, -73.3), [], L.y - .03, .6), [top, M.stone]);
     p.area = area;
     const info = LEVEL_INFO[L.id];
     p.info = { cat: L.k < 0 ? 'Underground level' : 'Floor plate', sub: `${L.y >= 0 ? '+' : '−'}${Math.abs(L.y)} m · ${L.sub}`, desc: info[0], stats: [[`${fmt(area)} m²`, 'floor plate'], ...info[1]].slice(0, 3) };
@@ -1744,11 +1762,11 @@ function buildLevels() {
     // the plans' own lines in the band along the fronts (fins, mullions, glazing) are built by the exterior
     const fac = (x, z) => up ? polySD(FAC.poly, x, z) > -3.0 : L.y >= 0 && OUTLINE('L0').some(P => polySD(P, x, z) > -1.2);
     for (const s of unpackSegs(D_.walls)) {
-      const mx = (s[0] + s[2]) / 2, mz = (s[1] + s[3]) / 2, core = CORES.some(P => inPoly(P, mx, mz, .6));
+      const mx = (s[0] + s[2]) / 2, mz = (s[1] + s[3]) / 2, core = CORES.some(P => inPoly(P, mx, mz, .6)) || CORE_POLYS().some(P => inPoly(P, mx, mz, .6));
       if (own(mx, mz) || core || fac(mx, mz)) continue;
       gw.wall(s[0], s[1], s[2], s[3], L.y, L.y + hW, .14);
     }
-    for (const s of coreWalls(L.id)) if (polySD(FAC.poly, (s[0] + s[2]) / 2, (s[1] + s[3]) / 2) < -.9) gc.wall(s[0], s[1], s[2], s[3], L.y, L.y + L.h - .02, .3);   // up to the next floor, unbroken
+    for (const s of coreWalls(L.id)) if (polySD(FAC.poly, (s[0] + s[2]) / 2, (s[1] + s[3]) / 2) > .9) gc.wall(s[0], s[1], s[2], s[3], L.y, L.y + L.h - .02, .3);   // up to the next floor, unbroken
     for (const s of unpackSegs(D_.glass)) if (!own((s[0] + s[2]) / 2, (s[1] + s[3]) / 2) && !fac((s[0] + s[2]) / 2, (s[1] + s[3]) / 2)) gg.wall(s[0], s[1], s[2], s[3], L.y, L.y + Math.min(hW, 3.2), .04);
     gbMesh(p, stCore, gc, M.concrete, { hideGhost: true });
     gbMesh(p, stFit, gw, M.plaster, { hideGhost: true });
@@ -1788,7 +1806,7 @@ function placeExtrude(shape, depth, x, y, z, dx, dz, off) {
   return g;
 }
 function buildStairs(p, L, st) {
-  const groups = (NDK_STAIRS[L.id] || []);
+  const groups = [...(NDK_STAIRS[L.id] || []).filter(G => !G.core), ...(ABOVE.includes(L.id) ? coreStairs(L) : [])];
   if (!groups.length) return;
   M.stairSide = M.stairSide || mat({ map: texVariant(TX.wood, 5, 5), color: 0x4a3a2e, roughness: .5, metalness: .3, envMapIntensity: 1.2 }, { clay: '#e6ddd0' });
   const sets = { pub: { tread: [], side: [], cap: [] }, core: { tread: [], side: [], cap: [] } };
@@ -1899,8 +1917,12 @@ const nearCore = (x, z, m = .9) => CORES.some(P => inPoly(P, x, z, m));
 const FACADE_E = [
   [0, -53.2, 'bay'], [13.8, -53.2, 'fin'], [29.2, -37.8, 'tower'], [30.4, -37.0, 'tower'], [35.0, -36.8, 'tower'], [36.0, -34.2, 'tower'], [39.0, -31.2, 'tower'],
   [41.4, -30.4, 'tower'], [41.4, -26.4, 'tower'], [42.2, -24.6, 'wing'], [57.8, -9.2, 'wing'], [57.8, 18.6, 'wing'], [42.2, 34.0, 'tower'], [41.4, 35.8, 'tower'],
-  [41.4, 39.6, 'tower'], [39.2, 40.4, 'tower'], [36.0, 43.6, 'tower'], [35.0, 46.2, 'tower'], [29.6, 46.2, 'fin'], [23.6, 43.6, 'fin'], [15.6, 52.2, 'bay'], [0, 52.2, null],
+  [41.4, 39.6, 'tower'], [39.2, 40.4, 'tower'], [36.0, 43.6, 'tower'], [35.0, 46.2, 'tower'], [30.4, 46.4, 'tower'], [29.2, 47.2, 'fin'], [13.8, 62.6, 'bay'], [0, 62.6, null],
 ];
+/* seen from above the upper body is a square with cut corners: the south half mirrors the north about the middle of the
+   east and west fronts (the plans' recessed south front is filled out to that line) */
+const MIRROR_Z = -9.2 + 18.6;                 // z ↦ MIRROR_Z − z reflects north onto south
+const SOUTH_FILL = [[29.4, 45.5], [28.6, 46.6], [13.55, 62.0], [-13.55, 62.0], [-28.6, 46.6], [-29.4, 45.5], [-23.3, 42.9], [-15.3, 51.4], [15.3, 51.4], [23.3, 42.9]];
 const FAC = (() => {
   const E = FACADE_E, segs = [];
   for (let i = 0; i < E.length - 1; i++) {
@@ -1920,11 +1942,13 @@ const FIN = { top: 36.6, pitch: 2.9, pitchS: 2.9, armS: 1.5, glass0: 8, glass1: 
    outer wings each floor adds a fin or two, so the feet of the fins climb away from the towers. */
 const FINS_HALF_E = [[28.8, -35.9, 1, -1, 0, 2.0, 0]];     // the lone arm that closes each north group against its tower
 const FINS_E = [[14.55, -49.69, 1, -1, 2.0, 2.0, 0], [17.43, -46.91, 1, -1, 2.0, 2.0, 0], [20.25, -43.99, 1, -1, 2.0, 2.0, 0], [23.12, -41.2, 1, -1, 2.0, 2.0, 0], [25.95, -38.29, 1, -1, 2.0, 2.0, 0], [43.23, -21.39, 1, -1, 2.0, 2.0, 0], [46.14, -18.57, 1, -1, 2.0, 2.0, 1], [48.92, -15.68, 1, -1, 2.0, 2.0, 1], [51.78, -12.79, 1, -1, 2.0, 2.0, 2], [54.66, -10.01, 1, -1, 2.0, 2.0, 2], [54.59, 19.47, 1, 1, 2.0, 2.0, 2], [51.84, 22.41, 1, 1, 2.0, 2.0, 2], [48.9, 25.16, 1, 1, 2.0, 2.0, 1], [45.94, 27.9, 1, 1, 2.0, 2.0, 1], [43.22, 30.88, 1, 1, 2.0, 2.0, 0]];
-/* the fins along each run of the facade line: CAD fins where the plans draw them, generated ones on the south fronts */
+/* the north-east fins mirrored onto the south-east front (the plans draw none there) */
+const FINS_ALL_E = [...FINS_E, ...FINS_HALF_E, ...[...FINS_E, ...FINS_HALF_E].filter(f => f[1] < -33).map(f => [f[0], MIRROR_Z - f[1], f[2], -f[3], f[4], f[5], f[6]])];
+/* the fins along each run of the facade line: CAD fins where the plans draw them, generated ones where they don't */
 function finsOnSeg(sg) {
   const { a, b, kind } = sg, L = Math.hypot(b[0] - a[0], b[1] - a[1]), t = [(b[0] - a[0]) / L, (b[1] - a[1]) / L], n = edgeNormal(FAC.poly, a, b), out = [];
   const mir = f => sg.side > 0 ? f : [-f[0], f[1], -f[2], f[3], f[4], f[5], f[6]];
-  for (const f of [...FINS_E, ...FINS_HALF_E].map(mir)) {
+  for (const f of FINS_ALL_E.map(mir)) {
     const [x, z, ax, az, la, lb] = f, tips = [];
     if (la > 0) tips.push([x + ax * la, z]); if (lb > 0) tips.push([x, z + az * lb]);
     if (tips.length < 2) tips.push([x, z]);
@@ -1952,25 +1976,26 @@ function finsOnSeg(sg) {
   return out;
 }
 /* the stone piers in the middle of the east and west fronts (the plans' solid 11 m wall between the glazing) */
-const PIER = { z0: -1.0, z1: 10.4, x0: 56.6, x1: 57.9, y0: 21.2 };          // on levels 5–7; glass below
+const PIER = { z0: -1.0, z1: 10.4, x0: 56.6, x1: 57.9 };                   // a square of stone under the cornice; glass below
+PIER.y0 = FIN.top - (PIER.z1 - PIER.z0);
 const inTowerRun = (x, z) => TOWERS.some(T => inPoly(T.P, x, z, .8));
-/* the crown: the block over Hall 3 — white walls, a copper mansard and a low copper pyramid */
-const CROWN = { x: 30, z0: -27.5, z1: 32.5, c: 7, wall: 41.3, eave: 44.0, top: 46.4, inset: 2.4, apex: 48.6 };
+/* the crown: the block over Hall 3 — white walls, a copper mansard and a low copper pyramid, centred in the square */
+const CROWN = { x: 30, z0: -25.3, z1: 34.7, c: 7, wall: 41.3, eave: 44.0, top: 46.4, inset: 2.4, apex: 48.6 };
 CROWN.cz = (CROWN.z0 + CROWN.z1) / 2;
 const crownOct = (inset = 0) => {
   const { x, z0, z1, c } = CROWN, X = x - inset, A = z0 + inset, B = z1 - inset, k = c - inset * .41;
   return [[-X + k, A], [X - k, A], [X, A + k], [X, B - k], [X - k, B], [-X + k, B], [-X, B - k], [-X, A + k]];
 };
 /* the main octagon of the upper body (without the towers' jogs); level 8 stands 5 m inside it */
-const MAIN_E = [[0, -53.2], [13.8, -53.2], [57.8, -9.2], [57.8, 18.6], [29.8, 46.4], [15.6, 52.2], [0, 52.2]];
+const MAIN_E = [[0, -53.2], [13.8, -53.2], [57.8, -9.2], [57.8, 18.6], [13.8, 62.6], [0, 62.6]];
 const MAIN = [...MAIN_E, ...MAIN_E.slice(1, -1).reverse().map(p => [-p[0], p[1]])];
 const L8SHELL = offsetPoly(MAIN, 5);
 /* the towers: white stone on their run of the facade line, reaching 8–9 m into the building to the inner corners of
    the lift & stair cores; a copper roof rises from the tower top towards the crown, and a copper bridge joins it to the
    corner of the crown's mansard */
 const TOWERS = (() => {
-  const out = [], E = FACADE_E, top = crownOct(CROWN.inset), coreE = { NE: NDK_PLAN.cores.NE, SE: NDK_PLAN.cores.SE };
-  const runs = [[2, 9, 'NE', [2, 1]], [12, 18, 'SE', [4, 3]]];
+  const out = [], E = FACADE_E, top = crownOct(CROWN.inset), coreE = { NE: NDK_PLAN.cores.NE, SE: NDK_PLAN.cores.NE.map(([x, z]) => [x, MIRROR_Z - z]) };
+  const runs = [[2, 9, 'NE', [2, 1]], [12, 19, 'SE', [4, 3]]];
   for (const [i0, i1, key, ci] of runs) for (const sx of [1, -1]) {
     const outer = E.slice(i0, i1 + 1).map(p => [p[0] * sx, p[1]]), core = coreE[key].map(p => [p[0] * sx, p[1]]);
     const cham = ci.map(k => [top[k][0] * sx, top[k][1]]), mid = [(cham[0][0] + cham[1][0]) / 2, (cham[0][1] + cham[1][1]) / 2];
@@ -2312,8 +2337,8 @@ function interiorMaterials() {
   M.relief = mat({ color: 0xc9a04e, roughness: .32, metalness: .85, envMapIntensity: 2.2, emissive: 0x7a5a1c, emissiveIntensity: .45 }, { clay: '#efe4cf' });
   M.reliefDark = mat({ map: texVariant(TX.relief, 12, 4), color: 0x6a5a4a, roughness: .45, metalness: .7, envMapIntensity: 1.6 }, { clay: '#e6ddd0' });
   M.tileRed = mat({ map: texVariant(TX.tiles, 4.8, 4.8), color: 0xffffff, roughness: .35, envMapIntensity: 1.1 }, { clay: '#efe2da' });
-  M.bulb = new THREE.MeshBasicMaterial({ color: new THREE.Color(3.2, 2.7, 1.9) });
-  M.downlight = new THREE.MeshBasicMaterial({ color: new THREE.Color(4, 3.8, 3.4) });
+  M.bulb = new THREE.MeshBasicMaterial({ color: new THREE.Color(3.2, 2.7, 1.9), clippingPlanes: CLIP });
+  M.downlight = new THREE.MeshBasicMaterial({ color: new THREE.Color(4, 3.8, 3.4), clippingPlanes: CLIP });
 }
 function interiorTextures() {
   // white triangular coffers with a light at every node
@@ -2606,7 +2631,7 @@ function buildHalls789() {
   const y = LV.L5.y, top = 28.35;
   M.mural8 = mat({ map: drawBigMural(), roughness: .8 }, { clay: '#f2ece2' });
   const defs = [
-    { id: 'hall9', n: 'Hall 9', P: NDK_PLAN.halls.h9, face: [0, -1], c: '#6fa8ff', m: 'seatBlue', hue: 220, dir: 'on the park side' },
+    { id: 'hall9', n: 'Hall 9', P: clipHalf(clipHalf(NDK_PLAN.halls.h9, -1, 1, -63.9), 1, 1, -63.9) /* kept behind the V's of the first fins */, face: [0, -1], c: '#6fa8ff', m: 'seatBlue', hue: 220, dir: 'on the park side' },
     { id: 'hall8', n: 'Hall 8', P: NDK_PLAN.halls.h8, face: [-1, 0], c: '#ff7a9a', m: 'seatBord', hue: 340, dir: 'in the west wing', mural: true },
     { id: 'hall7', n: 'Hall 7', P: NDK_PLAN.halls.h7, face: [1, 0], c: '#ffa05a', m: 'seatOrange', hue: 25, dir: 'in the east wing' },
   ];
@@ -2785,9 +2810,10 @@ function buildFoyer(p, L, st) {
     }
     cords.box(cx - (nx - 1) * .25 - .25, top - .16, cz - (nz - 1) * .25 - .25, cx + (nx - 1) * .25 + .25, top + .02, cz + (nz - 1) * .25 + .25);
   };
-  // each cascade hangs from a bronze canopy fixed to the ceiling of level 2 (the underside of level 3), clear of the atrium's upper opening
-  const ceilY = (x, z) => ABOVE.slice(1).map(id => LV[id]).find(Lv => inSlab(Lv.id, x, z)).y - .72;
-  for (const [x, z, nx, nz, len] of [[0, -43.5, 9, 15, 8.2], [-15, -32, 5, 5, 6.5], [15, -32, 5, 5, 6.5]]) cascade(x, z, nx, nz, ceilY(x, z), len);
+  // each cascade hangs from a bronze canopy fixed to the first ceiling above it: the two side ones from the underside of
+  // level 3, the grand one in the middle of the foyer through the atrium's upper opening, its lowest bulbs ~5.5 m up
+  const ceilY = (x, z) => (ABOVE.slice(1).map(id => LV[id]).find(Lv => inSlab(Lv.id, x, z)) || LV.L3).y - .72;
+  for (const [x, z, nx, nz, len] of [[0, -32.4, 13, 9, 0], [-15, -32, 5, 5, 6.5], [15, -32, 5, 5, 6.5]]) { const top = ceilY(x, z); cascade(x, z, nx, nz, top, len || Math.min(12, top - 5.5)); }
   const bg = new THREE.SphereGeometry(.13, 6, 4), imb = new THREE.InstancedMesh(bg, M.bulb, bulbs.length), m4 = new THREE.Matrix4();
   bulbs.forEach(([x, y, z], i) => { m4.makeTranslation(x, y, z); imb.setMatrixAt(i, m4); });
   imb.computeBoundingSphere();
