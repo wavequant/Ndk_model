@@ -251,8 +251,8 @@ pan. Tap any part for its facts, or tap empty sky to clear the selection.
   plays back.
 - **Section cut and x-ray** use a shared clipping plane and a ghost shader, applied to every
   material in the scene.
-- **Deployment.** [`.github/workflows/pages.yml`](.github/workflows/pages.yml) publishes the page
-  and its media to GitHub Pages on every push to the default branch.
+- **Deployment.** GitHub Pages serves the repository as it is (`index.html` and `media/`), so
+  every push to the default branch updates the live site within a minute.
 
 ## Credits
 
